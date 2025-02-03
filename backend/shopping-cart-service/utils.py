@@ -10,7 +10,6 @@ product_service_url = os.environ["PRODUCT_SERVICE_URL"]
 logger = Logger()
 tracer = Tracer()
 
-
 @tracer.capture_method
 def get_product_from_external_service(product_id):
     """

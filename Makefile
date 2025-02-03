@@ -9,6 +9,7 @@ ACCOUNT_ID := 000000000000
 S3_BUCKET = aws-serverless-shopping-cart-src-$(ACCOUNT_ID)-$(REGION)
 endif
 
+# awslocal s3 mb s3://aws-serverless-shopping-cart-src-000000000000-us-east-1 --region us-east-1
 
 backend: create-bucket
 	$(MAKE) -C backend TEMPLATE=auth S3_BUCKET=$(S3_BUCKET) REGION=${REGION}

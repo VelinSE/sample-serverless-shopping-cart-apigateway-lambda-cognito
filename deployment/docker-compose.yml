@@ -1,0 +1,38 @@
+services:
+  localstack:
+    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+    image: localstack/localstack-pro  # required for Pro
+    environment:
+      # API Gateway, Cognito, Lambda, DynamoDB, SQS
+      # - SERVICES=lambda,s3,cloudformation,cloudwatch,logs,apigateway,cognito-idp,dynamodb,sqs,ssm
+      - DEBUG=1
+      - LAMBDA_EXECUTOR=docker
+      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY-}
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?}
+    ports:
+      - "4566:4566"
+      - "4571:4571"
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - localstack-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - 1888:1888 # pprof extension
+      - 8888:8888 # Prometheus metrics exposed by the Collector
+      - 8889:8889 # Prometheus exporter metrics
+      - 13133:13133 # health_check extension
+      - 4317:4317 # OTLP gRPC receiver
+      - 4318:4318 # OTLP http receiver
+      - 55679:55679 # zpages extension
+    networks:
+      - localstack-net
+
+networks:
+  localstack-net:
+    driver: bridge
