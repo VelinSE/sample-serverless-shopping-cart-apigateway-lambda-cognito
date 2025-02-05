@@ -24,6 +24,9 @@ backend-delete:
 backend-tests:
 	$(MAKE) -C backend tests
 
+load-tests:
+	$(MAKE) -C test load-test TEMPLATE=shoppingcart-service
+
 create-bucket:
 	@echo "Checking if S3 bucket exists s3://$(S3_BUCKET)"
 	@awslocal s3api head-bucket --bucket $(S3_BUCKET) || (echo "bucket does not exist at s3://$(S3_BUCKET), creating it..." ; awslocal s3 mb s3://$(S3_BUCKET) --region $(REGION))

@@ -2,3 +2,5 @@
 .idea
 .env
 deployment/volume
+venv
+__pycache__
