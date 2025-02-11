@@ -15,14 +15,31 @@ Resources:
     Type: AWS::Cognito::UserPool
     Properties:
       UserPoolName: !Sub ${AWS::StackName}-UserPool
-      AutoVerifiedAttributes: 
+      AutoVerifiedAttributes:
         - email
+
+  CognitoResourceServer:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      Identifier: "cart-api"
+      Name: "My API Resource Server"
+      UserPoolId: !Ref CognitoUserPool
+      Scopes:
+        - ScopeName: default
+          ScopeDescription: "Default scope for M2M auth"
+
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
+      DependsOn: CognitoResourceServer
       ClientName: my-app
-      GenerateSecret: false
+      GenerateSecret: true
       UserPoolId: !Ref CognitoUserPool
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - client_credentials
+      AllowedOAuthScopes:
+        - "cart-api/default"
       ExplicitAuthFlows:
         - ADMIN_NO_SRP_AUTH
 
