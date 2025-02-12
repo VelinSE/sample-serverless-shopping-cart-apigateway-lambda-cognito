@@ -295,6 +295,8 @@ Resources:
             Method: post
             Auth:
               Authorizer: CognitoAuthorizer
+              AuthorizationScopes:
+              - "cart-api/default"
 
   GetCartTotalFunction:
     Type: AWS::Serverless::Function

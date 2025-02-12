@@ -4,7 +4,7 @@ from datetime import datetime
 
 import boto3
 from aws_lambda_powertools import Logger, Metrics, Tracer
-from otel_utils import init_tracer
+from otel_utils import OtelTracer
 
 from shared import (
     NotFoundException,
@@ -23,7 +23,7 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ["TABLE_NAME"])
 product_service_url = os.environ["PRODUCT_SERVICE_URL"]
 
-otel_tracer = init_tracer("add_to_cart")
+otel_tracer = OtelTracer("add_to_cart")
 
 @metrics.log_metrics(capture_cold_start_metric=True)
 @logger.inject_lambda_context(log_event=True)
@@ -33,8 +33,7 @@ def lambda_handler(event, context):
     Add a the provided quantity of a product to a cart. Where an item already exists in the cart, the quantities will
     be summed.
     """
-    with tracer.start_as_current_span('root') as root:
-        root.set_attribute("start_time", datetime.now())
+    with otel_tracer.start_trace('root'):
         try:
             request_payload = json.loads(event["body"])
         except KeyError:
@@ -75,41 +74,42 @@ def lambda_handler(event, context):
             ttl = generate_ttl()
 
         if int(quantity) < 0:
-            table.update_item(
-                Key={"pk": pk, "sk": f"product#{product_id}"},
-                ExpressionAttributeNames={
-                    "#quantity": "quantity",
-                    "#expirationTime": "expirationTime",
-                    "#productDetail": "productDetail",
-                },
-                ExpressionAttributeValues={
-                    ":val": quantity,
-                    ":ttl": ttl,
-                    ":productDetail": product,
-                    ":limit": abs(quantity),
-                },
-                UpdateExpression="ADD #quantity :val SET #expirationTime = :ttl, #productDetail = :productDetail",
-                # Prevent quantity less than 0
-                ConditionExpression="quantity >= :limit",
-            )
+            with otel_tracer.start_trace('db_query'):
+                table.update_item(
+                    Key={"pk": pk, "sk": f"product#{product_id}"},
+                    ExpressionAttributeNames={
+                        "#quantity": "quantity",
+                        "#expirationTime": "expirationTime",
+                        "#productDetail": "productDetail",
+                    },
+                    ExpressionAttributeValues={
+                        ":val": quantity,
+                        ":ttl": ttl,
+                        ":productDetail": product,
+                        ":limit": abs(quantity),
+                    },
+                    UpdateExpression="ADD #quantity :val SET #expirationTime = :ttl, #productDetail = :productDetail",
+                    # Prevent quantity less than 0
+                    ConditionExpression="quantity >= :limit",
+                )
         else:
-            table.update_item(
-                Key={"pk": pk, "sk": f"product#{product_id}"},
-                ExpressionAttributeNames={
-                    "#quantity": "quantity",
-                    "#expirationTime": "expirationTime",
-                    "#productDetail": "productDetail",
-                },
-                ExpressionAttributeValues={
-                    ":val": quantity,
-                    ":ttl": generate_ttl(),
-                    ":productDetail": product,
-                },
-                UpdateExpression="ADD #quantity :val SET #expirationTime = :ttl, #productDetail = :productDetail",
-            )
+            with otel_tracer.start_trace('db_query'):
+                table.update_item(
+                    Key={"pk": pk, "sk": f"product#{product_id}"},
+                    ExpressionAttributeNames={
+                        "#quantity": "quantity",
+                        "#expirationTime": "expirationTime",
+                        "#productDetail": "productDetail",
+                    },
+                    ExpressionAttributeValues={
+                        ":val": quantity,
+                        ":ttl": generate_ttl(),
+                        ":productDetail": product,
+                    },
+                    UpdateExpression="ADD #quantity :val SET #expirationTime = :ttl, #productDetail = :productDetail",
+                )
         metrics.add_metric(name="CartUpdated", unit="Count", value=1)
 
-        root.set_attribute("end_time", datetime.now())
         return {
             "statusCode": 200,
             "headers": get_headers(cart_id),

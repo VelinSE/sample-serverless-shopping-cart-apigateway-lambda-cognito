@@ -6,7 +6,7 @@ from aws_lambda_powertools import Logger, Metrics, Tracer
 from boto3.dynamodb.conditions import Key
 
 from shared import get_cart_id, get_headers, handle_decimal_type
-from shared import OtelTracer
+from otel_utils import OtelTracer
 
 logger = Logger()
 tracer = Tracer()

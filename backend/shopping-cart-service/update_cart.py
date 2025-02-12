@@ -10,8 +10,8 @@ from shared import (
     get_cart_id,
     get_headers,
     get_user_sub,
-    OtelTracer
 )
+from otel_utils import OtelTracer
 from utils import get_product_from_external_service
 
 logger = Logger()

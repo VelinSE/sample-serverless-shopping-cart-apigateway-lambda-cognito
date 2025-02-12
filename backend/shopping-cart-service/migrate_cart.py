@@ -6,7 +6,8 @@ import boto3
 from aws_lambda_powertools import Logger, Metrics, Tracer
 from boto3.dynamodb.conditions import Key
 
-from shared import generate_ttl, get_cart_id, get_headers, handle_decimal_type, OtelTracer
+from shared import generate_ttl, get_cart_id, get_headers, handle_decimal_type
+from otel_utils import OtelTracer
 
 logger = Logger()
 tracer = Tracer()
@@ -25,7 +26,7 @@ def update_item(user_id, item):
     Update an item in the database, adding the quantity of the passed in item to the quantity of any products already
     existing in the cart.
     """
-    with otel_tracer.start_span('db_query'):
+    with otel_tracer.start_trace('db_query'):
         table.update_item(
             Key={"pk": f"user#{user_id}", "sk": item["sk"]},
             ExpressionAttributeNames={

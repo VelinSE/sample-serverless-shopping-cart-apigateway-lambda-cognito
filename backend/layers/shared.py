@@ -7,7 +7,7 @@ from http.cookies import SimpleCookie
 
 from aws_lambda_powertools import Tracer
 
-import cognitojwt
+from jwt import PyJWKClient, decode, exceptions
 
 tracer = Tracer()
 
@@ -17,6 +17,7 @@ HEADERS = {
     "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
     "Access-Control-Allow-Credentials": True,
 }
+JWKS_URL = f"http://localhost:4566/{os.environ['USERPOOL_ID']}/.well-known/jwks.json"
 
 
 class NotFoundException(Exception):
@@ -51,10 +52,12 @@ def get_user_sub(jwt_token):
     Validate JWT claims & retrieve user identifier
     """
     try:
-        verified_claims = cognitojwt.decode(
-            jwt_token, os.environ["AWS_REGION"], os.environ["USERPOOL_ID"]
-        )
-    except (cognitojwt.CognitoJWTException, ValueError):
+        jwks_client = PyJWKClient(JWKS_URL)
+        signing_key = jwks_client.get_signing_key_from_jwt(jwt_token)
+        verified_claims = decode(jwt_token, signing_key)
+
+    except (exceptions.InvalidTokenError, ValueError):
+        print("-----------------FAILED TO VERIFY---------------------")
         verified_claims = {}
 
     return verified_claims.get("sub")
