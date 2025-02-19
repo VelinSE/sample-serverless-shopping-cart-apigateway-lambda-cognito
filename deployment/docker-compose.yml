@@ -32,7 +32,29 @@ services:
       - 55679:55679 # zpages extension
     networks:
       - localstack-net
+    depends_on:
+      - clickhouse
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=password
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "9000:9000"  # Native TCP interface
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
+      - ./clickhouse/startup-scripts.xml:/etc/clickhouse-server/config.d/startup-scripts.xml
+    networks:
+      - localstack-net
 
 networks:
   localstack-net:
     driver: bridge
+
+volumes:
+  # docker volume create clickhouse_data
+  clickhouse_data:
+    external: true
