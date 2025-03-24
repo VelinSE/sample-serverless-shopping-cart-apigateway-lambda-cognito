@@ -48,4 +48,13 @@ frontend-serve:
 frontend-build: 
 	$(MAKE) -C frontend build
 
-.PHONY: all backend backend-delete backend-tests create-bucket amplify-deploy frontend-serve frontend-build
+create-volume:
+	@docker volume inspect clickhouse-data > NUL 2>&1 || docker volume create clickhouse-data
+
+localstack: create-volume
+	@docker compose -f deployment/docker-compose.yml up
+
+localstack-stop:
+	@docker compose -f deployment/docker-compose.yml stop
+
+.PHONY: all backend backend-delete backend-tests create-bucket amplify-deploy frontend-serve frontend-build create-volume localstack localstack-stop
